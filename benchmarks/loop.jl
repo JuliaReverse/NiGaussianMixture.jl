@@ -1,3 +1,7 @@
+using NiGaussianMixture
+using StaticArrays
+using BenchmarkTools
+
 main_term = zeros(1, 5)
 Qs = [MMatrix{10,10}(randn(10,10)) for i=1:5]
 xs = [MVector{10}(randn(10)) for i=1:10000]
