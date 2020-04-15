@@ -1,6 +1,6 @@
 using NiGaussianMixture
 using Test
 
-@testset "NiGaussianMixture.jl" begin
-    # Write your own tests here.
+@testset "reversible" begin
+    include("reversible.jl")
 end
