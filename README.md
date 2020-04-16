@@ -76,4 +76,4 @@ BenchmarkTools.Trial:
   evals/sample:     1
 ```
 
-Note: this result is not yet fully optimized.
+Note: the memory usage is not yet fully optimized. We can still trade some space for time.
