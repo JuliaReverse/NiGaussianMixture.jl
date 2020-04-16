@@ -7,7 +7,7 @@ The motivation is to beat the benchmark in this [paper](https://arxiv.org/abs/18
 [![Build Status](https://travis-ci.com/JuliaReverse/NiGaussianMixture.jl.svg?branch=master)](https://travis-ci.com/JuliaReverse/NiGaussianMixture.jl)
 [![Codecov](https://codecov.io/gh/JuliaReverse/NiGaussianMixture.jl/branch/master/graph/badge.svg)](https://codecov.io/gh/JuliaReverse/NiGaussianMixture.jl)
 
-## Get started
+## Get started!
 
 Open a Julia REPL and type `]` to enter `pkg` mode and then type
 ```julia pkg
