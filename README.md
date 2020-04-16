@@ -77,3 +77,6 @@ BenchmarkTools.Trial:
 ```
 
 Note: the memory usage is not yet fully optimized. We can still trade some space for time.
+
+It corresponds to the second column of ADBench paper
+![ADBench](benchmarks/adbench.png)
