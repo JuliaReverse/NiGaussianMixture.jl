@@ -24,59 +24,57 @@ You will see results like:
 ```julia repl
 loading data: /home/leo/.julia/dev/NiGaussianMixture/data/gmm/10k/gmm_d10_K5.txt
 Normal Objective
-BenchmarkTools.Trial:
+BenchmarkTools.Trial: 
   memory estimate:  4.43 MiB
   allocs estimate:  69121
   --------------
-  minimum time:     8.937 ms (0.00% GC)
-  median time:      9.088 ms (0.00% GC)
-  mean time:        9.683 ms (5.64% GC)
-  maximum time:     15.601 ms (33.67% GC)
+  minimum time:     5.799 ms (0.00% GC)
+  median time:      5.849 ms (0.00% GC)
+  mean time:        6.063 ms (2.97% GC)
+  maximum time:     12.997 ms (50.32% GC)
   --------------
-  samples:          516
+  samples:          825
   evals/sample:     1
 Reversible Objective
-BenchmarkTools.Trial:
-  memory estimate:  19.44 MiB
-  allocs estimate:  160434
+BenchmarkTools.Trial: 
+  memory estimate:  6.91 MiB
+  allocs estimate:  80334
   --------------
-  minimum time:     49.781 ms (0.00% GC)
-  median time:      52.293 ms (0.00% GC)
-  mean time:        53.114 ms (3.52% GC)
-  maximum time:     65.018 ms (8.92% GC)
+  minimum time:     29.817 ms (0.00% GC)
+  median time:      30.005 ms (0.00% GC)
+  mean time:        30.473 ms (1.29% GC)
+  maximum time:     33.439 ms (8.34% GC)
   --------------
-  samples:          95
+  samples:          165
   evals/sample:     1
-
 NiLang Gradient
-BenchmarkTools.Trial:
-  memory estimate:  51.74 MiB
-  allocs estimate:  320860
+BenchmarkTools.Trial: 
+  memory estimate:  19.04 MiB
+  allocs estimate:  160662
   --------------
-  minimum time:     136.134 ms (2.61% GC)
-  median time:      138.738 ms (2.92% GC)
-  mean time:        148.102 ms (3.16% GC)
-  maximum time:     238.323 ms (2.57% GC)
+  minimum time:     79.517 ms (0.00% GC)
+  median time:      80.665 ms (0.00% GC)
+  mean time:        81.452 ms (1.28% GC)
+  maximum time:     91.425 ms (9.19% GC)
   --------------
-  samples:          34
+  samples:          62
   evals/sample:     1
-
 ForwardDiff Gradient
 nparams = 330
-BenchmarkTools.Trial:
+BenchmarkTools.Trial: 
   memory estimate:  659.90 MiB
   allocs estimate:  1935756
   --------------
-  minimum time:     1.291 s (3.62% GC)
-  median time:      1.307 s (3.78% GC)
-  mean time:        1.306 s (3.75% GC)
-  maximum time:     1.319 s (3.76% GC)
+  minimum time:     1.086 s (2.56% GC)
+  median time:      1.087 s (2.57% GC)
+  mean time:        1.091 s (2.57% GC)
+  maximum time:     1.110 s (2.62% GC)
   --------------
-  samples:          4
+  samples:          5
   evals/sample:     1
 ```
 
-Note: the memory usage is not yet fully optimized. We can still trade some space for time.
+Note: CPU: Intel(R) Xeon(R) Gold 6230 CPU @ 2.10GHz.
 
 It corresponds to the second column of ADBench paper
 ![ADBench](benchmarks/adbench.png)
