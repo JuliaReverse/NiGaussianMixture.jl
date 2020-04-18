@@ -22,55 +22,54 @@ $ julia ~/.julia/dev/NiGaussianMixture/benchmarks/benchmark.jl
 
 You will see results like:
 ```julia repl
-loading data: /home/leo/.julia/dev/NiGaussianMixture/data/gmm/10k/gmm_d10_K5.txt
 Normal Objective
 BenchmarkTools.Trial: 
-  memory estimate:  4.43 MiB
-  allocs estimate:  69121
+  memory estimate:  18.69 MiB
+  allocs estimate:  159061
   --------------
-  minimum time:     5.799 ms (0.00% GC)
-  median time:      5.849 ms (0.00% GC)
-  mean time:        6.063 ms (2.97% GC)
-  maximum time:     12.997 ms (50.32% GC)
+  minimum time:     10.997 ms (0.00% GC)
+  median time:      11.079 ms (0.00% GC)
+  mean time:        11.502 ms (3.30% GC)
+  maximum time:     21.625 ms (27.79% GC)
   --------------
-  samples:          825
+  samples:          435
   evals/sample:     1
 Reversible Objective
 BenchmarkTools.Trial: 
-  memory estimate:  6.91 MiB
-  allocs estimate:  80334
+  memory estimate:  8.13 MiB
+  allocs estimate:  80211
   --------------
-  minimum time:     29.817 ms (0.00% GC)
-  median time:      30.005 ms (0.00% GC)
-  mean time:        30.473 ms (1.29% GC)
-  maximum time:     33.439 ms (8.34% GC)
+  minimum time:     48.270 ms (0.00% GC)
+  median time:      48.512 ms (0.00% GC)
+  mean time:        49.078 ms (0.70% GC)
+  maximum time:     57.010 ms (12.90% GC)
   --------------
-  samples:          165
+  samples:          102
   evals/sample:     1
 NiLang Gradient
 BenchmarkTools.Trial: 
-  memory estimate:  19.04 MiB
-  allocs estimate:  160662
+  memory estimate:  21.48 MiB
+  allocs estimate:  160427
   --------------
-  minimum time:     79.517 ms (0.00% GC)
-  median time:      80.665 ms (0.00% GC)
-  mean time:        81.452 ms (1.28% GC)
-  maximum time:     91.425 ms (9.19% GC)
+  minimum time:     111.399 ms (0.00% GC)
+  median time:      113.629 ms (0.00% GC)
+  mean time:        113.397 ms (0.86% GC)
+  maximum time:     122.746 ms (5.65% GC)
   --------------
-  samples:          62
+  samples:          45
   evals/sample:     1
 ForwardDiff Gradient
 nparams = 330
 BenchmarkTools.Trial: 
-  memory estimate:  659.90 MiB
-  allocs estimate:  1935756
+  memory estimate:  3.40 GiB
+  allocs estimate:  4454076
   --------------
-  minimum time:     1.086 s (2.56% GC)
-  median time:      1.087 s (2.57% GC)
-  mean time:        1.091 s (2.57% GC)
-  maximum time:     1.110 s (2.62% GC)
+  minimum time:     1.159 s (4.83% GC)
+  median time:      1.267 s (11.73% GC)
+  mean time:        1.267 s (11.57% GC)
+  maximum time:     1.375 s (16.82% GC)
   --------------
-  samples:          5
+  samples:          4
   evals/sample:     1
 ```
 
