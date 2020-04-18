@@ -23,7 +23,7 @@ $ julia ~/.julia/dev/NiGaussianMixture/benchmarks/benchmark.jl
 You will see results like:
 ```julia repl
 Normal Objective
-BenchmarkTools.Trial: 
+BenchmarkTools.Trial:
   memory estimate:  18.69 MiB
   allocs estimate:  159061
   --------------
@@ -35,7 +35,7 @@ BenchmarkTools.Trial:
   samples:          435
   evals/sample:     1
 Reversible Objective
-BenchmarkTools.Trial: 
+BenchmarkTools.Trial:
   memory estimate:  8.13 MiB
   allocs estimate:  80211
   --------------
@@ -47,7 +47,7 @@ BenchmarkTools.Trial:
   samples:          102
   evals/sample:     1
 NiLang Gradient
-BenchmarkTools.Trial: 
+BenchmarkTools.Trial:
   memory estimate:  21.48 MiB
   allocs estimate:  160427
   --------------
@@ -60,7 +60,7 @@ BenchmarkTools.Trial:
   evals/sample:     1
 ForwardDiff Gradient
 nparams = 330
-BenchmarkTools.Trial: 
+BenchmarkTools.Trial:
   memory estimate:  3.40 GiB
   allocs estimate:  4454076
   --------------
@@ -77,3 +77,37 @@ Note: CPU: Intel(R) Xeon(R) Gold 6230 CPU @ 2.10GHz.
 
 It corresponds to the second column of ADBench paper
 ![ADBench](benchmarks/adbench.png)
+
+## Make NiLang even faster!
+We call for an efficient implementation of linear algebra!
+The following routine cost `2/3` of NiLang's computing time, optimizing it will speed up the program by a factor of 2!
+
+```julia
+julia> A, b, v = randn(64, 64), randn(64), randn(64);
+
+julia> @benchmark BLAS.gemv!('N', 1.0, $A, $b, 1.0, $v)
+BenchmarkTools.Trial:
+  memory estimate:  0 bytes
+  allocs estimate:  0
+  --------------
+  minimum time:     499.487 ns (0.00% GC)
+  median time:      585.426 ns (0.00% GC)
+  mean time:        589.599 ns (0.00% GC)
+  maximum time:     4.237 μs (0.00% GC)
+  --------------
+  samples:          10000
+  evals/sample:     195
+
+julia> @benchmark NiGaussianMixture.igemv!($v, $A, $b)
+BenchmarkTools.Trial:
+  memory estimate:  32 bytes
+  allocs estimate:  1
+  --------------
+  minimum time:     1.834 μs (0.00% GC)
+  median time:      1.863 μs (0.00% GC)
+  mean time:        1.955 μs (0.00% GC)
+  maximum time:     7.121 μs (0.00% GC)
+  --------------
+  samples:          10000
+  evals/sample:     10
+```
