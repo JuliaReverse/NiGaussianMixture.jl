@@ -78,7 +78,7 @@ end
 	end
 end
 
-@i function igemv!(out!::AbstractVector{T}, x::AbstractMatrix{T}, y::AbstractVector{T}) where T
+@i function igemv!(out!::AbstractVector{T}, x::AbstractMatrix, y::AbstractVector) where T
 	@safe size(x, 2) == size(y, 1) || throw(DimensionMismatch())
 	@invcheckoff @inbounds for j=1:size(x,2)
 		for i=1:size(x,1)
@@ -170,21 +170,16 @@ end
 	end
 end
 
-@i function gmm_objective(loss, alphas, mean::AbstractMatrix{T}, icf::AbstractMatrix, x::AbstractMatrix, wishart::Wishart) where T
+@i function gmm_objective(loss, alphas, mean::AbstractMatrix{T}, icf::AbstractMatrix, x::AbstractMatrix{XT}, wishart::Wishart) where {T,XT}
 	@routine @invcheckoff begin
 	  	d ← size(x,1)
 	  	n ← size(x,2)
 	  	m ← size(mean,1)
 	  	k ← size(mean,2)
-		#sum_qs ← zero(MMatrix{1,size(icf, 2),T,size(icf,2)})
 		sum_qs ← zeros(T,1,size(icf, 2))
-		means ← zeros(MVector{m,T}, k)
-		#means ← [zeros(T,m) for i=1:k]
-		xs ← zeros(MVector{m,T}, n)
-		#xs ← [zeros(T,m) for i=1:n]
-		Qs ← zeros(MMatrix{d,d,T,d^2}, k)
-		#Qs ← [zeros(T, d, d) for i=1:k]
-	  	#main_term ← zero(MMatrix{1,k,T,k})
+		means ← [zeros(T,m) for i=1:k]
+		xs ← [zeros(T,m) for i=1:n]
+		Qs ← [zeros(T, d, d) for i=1:k]
 	  	main_term ← zeros(T,1,k)
 		loss1 ← zero(loss)
 		loss2 ← zero(loss)
@@ -226,7 +221,7 @@ end
   	@invcheckoff begin
 	  	k ← length(means)
 		d ← size(Qs[1], 1)
-		Outs ← zeros(MVector{d,T}, k)
+		Outs ← [zeros(T, d) for i=1:k]
 		logout ← zero(T)
 		local_out ← zeros(T, k)
 		out ← zero(T)
@@ -235,12 +230,12 @@ end
 		for ix=1:n
 			@routine begin
     			@inbounds for ik=1:k
-					bcast_subs(x[ix], means[ik])
+					x[ix] .-= identity.(means[ik])
 					igemv!(Outs[ik], Qs[ik], x[ix])
 					isum(local_out[ik], (@skip! abs2), Outs[ik])
 	      			main_term[ik] -= 0.5 * local_out[ik]
 	      			main_term[ik] += sum_qs[ik] + alphas[ik]
-					(~bcast_subs)(x[ix], means[ik])
+					x[ix] .+= identity.(means[ik])
 				end
 				logsumexp(logout, out, xs, inds, main_term)
     		end

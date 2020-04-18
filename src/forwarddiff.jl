@@ -47,12 +47,12 @@ function gmm_objective(alphas,means::AbstractArray{T},icf,x,wishart::Wishart) wh
   	n = size(x,2)
   	m = size(means,1)
   	k = size(means,2)
-  	means = MVector{m,T}.([(view(means,:,ik)) for ik=1:k])
-  	x = MVector{m,T}.([(view(x,:,ix)) for ix=1:n])
+  	means = [(view(means,:,ik)) for ik=1:k]
+  	x = [(view(x,:,ix)) for ix=1:n]
   	CONSTANT = -n*d*0.5*log(2 * pi)
 
   	sum_qs = sum(icf[1:d,:],dims=1)
-  	Qs = MMatrix{d,d,T,d^2}.([get_Q(d,icf[:,ik]) for ik in 1:k])
+  	Qs = [get_Q(d,icf[:,ik]) for ik in 1:k]
   	slse = loop!(Qs, x, means, alphas, sum_qs, n)
   	CONSTANT + slse - n*logsumexp(alphas) + log_wishart_prior(wishart, sum_qs, Qs, icf, d, k)
 end
