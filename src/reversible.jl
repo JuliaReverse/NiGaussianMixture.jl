@@ -81,7 +81,7 @@ end
 @i function igemv!(out!::AbstractVector{T}, x::AbstractMatrix, y::AbstractVector) where T
 	@safe size(x, 2) == size(y, 1) || throw(DimensionMismatch())
 	@invcheckoff @inbounds for j=1:size(x,2)
-		for i=1:size(x,1)
+		@simd for i=1:size(x,1)
 			out![i] += x[i,j] * y[j]
 		end
 	end
@@ -201,20 +201,6 @@ end
 	loss += loss1 + loss2
   	loss -= n * salpha
 	~@routine
-end
-
-function Base.zeros(::Type{T}, dims::NTuple{N, Integer}) where {T,N}
-    a = Array{T,N}(undef, dims)
-	for i=1:length(a)
-		a[i] = zero(T)
-	end
-    return a
-end
-
-@i function bcast_subs(x, y)
-	@invcheckoff for i=1:length(x)
-		@inbounds x[i] -= identity(y[i])
-	end
 end
 
 @i function loop!(slse::T, main_term, Qs, x::AbstractArray, means, alphas::AbstractArray, sum_qs, n) where T

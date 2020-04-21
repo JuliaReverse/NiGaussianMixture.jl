@@ -12,7 +12,7 @@ function load(d, k)
     NiGaussianMixture.read_gmm_instance(string(fn_in,".txt"), false)
 end
 
-alphas, means, icf, x, wishart = load(10, 5)
+alphas, means, icf, x, wishart = load(64, 10)
 println("Normal Objective")
 display(@benchmark gmm_objective($alphas,$means,$icf,$x,$wishart))
 println()
