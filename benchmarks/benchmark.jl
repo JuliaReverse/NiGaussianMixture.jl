@@ -20,7 +20,7 @@ println("Reversible Objective")
 display(@benchmark gmm_objective(0.0, $alphas,$means,$icf,$x,$wishart))
 println()
 println("NiLang Gradient")
-display(@benchmark gmm_objective'(Val(1), 0.0, $alphas,$means,$icf,$x,$wishart))
+display(@benchmark Grad(gmm_objective)(Val(1), 0.0, $alphas,$means,$icf,$x,$wishart))
 println()
 
 println("ForwardDiff Gradient")

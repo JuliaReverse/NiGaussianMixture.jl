@@ -72,7 +72,7 @@ end
 	@invcheckoff @inbounds for k=1:size(y,2)
 		for i=1:size(x,1)
 			for j=1:size(x,2)
-				out![i,k] += identity(x[i,j] * y[j,k])
+				out![i,k] += x[i,j] * y[j,k]
 			end
 		end
 	end
