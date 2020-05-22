@@ -1,5 +1,6 @@
 using BenchmarkTools
 using NiGaussianMixture
+using NiLang.AD
 
 function load(d, k)
     dir_in = joinpath(dirname(dirname(@__FILE__)), "data", "gmm")

@@ -81,9 +81,12 @@ end
 @i function igemv!(out!::AbstractVector{T}, x::AbstractMatrix, y::AbstractVector) where T
 	@safe size(x, 2) == size(y, 1) || throw(DimensionMismatch())
 	@invcheckoff @inbounds for j=1:size(x,2)
-		@simd for i=1:size(x,1)
-			out![i] += x[i,j] * y[j]
+		yj ← zero(T)
+		yj += identity(y[j])
+		for i=1:size(x,1)
+			out![i] += x[i,j] * yj
 		end
+		yj -= identity(y[j])
 	end
 end
 
@@ -211,18 +214,23 @@ end
 					for i=1:d
 						x[i,ix] -= identity(means[i,ik])
 					end
-					igemv!(view(Outs, :, ik), view(Qs,:,:,ik), view(x,:,ix))
+					#igemv!(view(Outs, :, ik), view(Qs,:,:,ik), view(x,:,ix))
 
 					# gemv
-					#for j=1:d
-					#	for i=1:d
-					#		Outs[i, ik] += Qs[i,j,ik] * x[j,ix]
-					#	end
-					#end
-					isum(local_out[ik], (@skip! abs2), view(Outs,:,ik))
-					#for l=1:d
-					#	local_out[ik] += abs2(Outs[l,ik])
-					#end
+					for j=1:d
+						xj ← zero(T)
+						xj += identity(x[j,ix])
+						for i=1:d
+							Outs[i, ik] += Qs[i,j,ik] * xj
+						end
+						xj -= identity(x[j,ix])
+					end
+					#isum(local_out[ik], (@skip! abs2), view(Outs,:,ik))
+					oi ← zero(T)
+					for l=1:d
+						 oi += abs2(Outs[l,ik])
+					end
+					SWAP(local_out[ik], oi)
 	      			main_term[ik] -= 0.5 * local_out[ik]
 	      			main_term[ik] += sum_qs[ik] + alphas[ik]
 					for i=1:size(x, 1)
