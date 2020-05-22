@@ -12,6 +12,10 @@ StaticArrays = "90137ffa-7385-5640-81b9-e52037218182"
 
 [compat]
 julia = "1"
+StaticArrays = "0.10,0.11,0.12"
+ForwardDiff = "0.8,0.9,0.10"
+NiLang = "0.3,0.4"
+SpecialFunctions = "0.9,0.10"
 
 [extras]
 Test = "8dfed614-e22c-5e08-85e1-65c5234f0b40"

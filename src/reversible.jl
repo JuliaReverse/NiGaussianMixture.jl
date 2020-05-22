@@ -81,9 +81,12 @@ end
 @i function igemv!(out!::AbstractVector{T}, x::AbstractMatrix, y::AbstractVector) where T
 	@safe size(x, 2) == size(y, 1) || throw(DimensionMismatch())
 	@invcheckoff @inbounds for j=1:size(x,2)
-		@simd for i=1:size(x,1)
-			out![i] += x[i,j] * y[j]
+		yj ← zero(T)
+		yj += identity(y[j])
+		for i=1:size(x,1)
+			out![i] += x[i,j] * yj
 		end
+		yj -= identity(y[j])
 	end
 end
 
@@ -111,8 +114,8 @@ end
 
 @i function log_wishart_prior(out!, wishart::Wishart{T}, sum_qs, Qs, icf) where T
 	@routine @invcheckoff begin
-	  	p ← size(Qs[1], 1)
-	  	k ← length(Qs)
+	  	p ← size(Qs, 1)
+	  	k ← size(Qs, 3)
 	  	n ← 1
 		np ← 0
 		halfn ← 0.0
@@ -133,8 +136,10 @@ end
   		C += np * logg
 		log_gamma_distrib(-C, halfn, p)
 
-  		for iq = 1:length(Qs)
-    		isum(frobenius, (@skip! abs2), diag(Qs[iq]))
+  		for iq = 1:size(Qs,3)
+			for l=1:p
+    			@inbounds frobenius += abs2(Qs[l,l,iq])
+			end
   		end
   		isum(frobenius, (@skip! abs2),icf[p+1:end,:])
 		isum(sum_sum_qs, sum_qs)
@@ -156,12 +161,6 @@ end
 	~@routine
 end
 
-@i function unpack_col(means, mean)
-	@invcheckoff @inbounds for ik = 1:size(mean, 2)
-		means[ik] .+= identity.(mean[:,ik])
-	end
-end
-
 @i function sum_row(sum_qs,icf,d)
 	@invcheckoff @inbounds for ic = 1:size(icf, 2)
 		for j=1:d
@@ -170,44 +169,52 @@ end
 	end
 end
 
-@i function gmm_objective(loss, alphas, mean::AbstractMatrix{T}, icf::AbstractMatrix, x::AbstractMatrix{XT}, wishart::Wishart) where {T,XT}
+@i function gmm_objective(loss, alphas, means::AbstractMatrix{T}, icf::AbstractMatrix, xs::AbstractMatrix{XT}, wishart::Wishart) where {T,XT}
 	@routine @invcheckoff begin
-	  	d ← size(x,1)
-	  	n ← size(x,2)
-	  	m ← size(mean,1)
-	  	k ← size(mean,2)
+	  	d ← size(xs,1)
+	  	n ← size(xs,2)
+	  	m ← size(means,1)
+	  	k ← size(means,2)
 		sum_qs ← zeros(T,1,size(icf, 2))
-		means ← [zeros(T,m) for i=1:k]
-		xs ← [zeros(T,m) for i=1:n]
-		Qs ← [zeros(T, d, d) for i=1:k]
-	  	main_term ← zeros(T,1,k)
+		Qs ← zeros(T,d,d,k)
 		loss1 ← zero(loss)
 		loss2 ← zero(loss)
 		salpha ← zero(loss)
 		out_anc ← zero(loss)
 		xs_anc ← T[]
 		inds_anc ← Int[]
-		unpack_col(means, mean)
-		unpack_col(xs, x)
+	end
+	@invcheckoff main_term ← zeros(T,1,k)
+	@invcheckoff @routine begin
 		sum_row(sum_qs, icf, @keep d)
 		for ik = 1:k
-  			get_Q(Qs[ik], view(icf,:,ik))
+	  		get_Q(view(Qs,:,:,ik), view(icf,:,ik))
 		end
-		loop!(loss1, main_term, Qs, xs, means, alphas, sum_qs, n)
-		log_wishart_prior(loss2, wishart, sum_qs, Qs, icf)
-		logsumexp(salpha, out_anc, xs_anc, inds_anc, alphas)
 	end
+	loop!(loss1, main_term, Qs, xs, means, alphas, sum_qs, n)
+	log_wishart_prior(loss2, wishart, sum_qs, Qs, icf)
+	(~log_wishart_prior)(loss2, wishart, sum_qs, Qs, icf)
+	logsumexp(salpha, out_anc, xs_anc, inds_anc, alphas)
+	~@routine
+
   	loss -= identity(n*d*0.5*log(2 * pi))
 	loss += loss1 + loss2
   	loss -= n * salpha
-	~@routine
+	ipush!(salpha)
+	ipush!(loss1)
+	ipush!(loss2)
+	ipush!(inds_anc)
+	ipush!(out_anc)
+	ipush!(xs_anc)
+	ipush!(main_term)
+	@invcheckoff main_term → zeros(T,0,0)
 end
 
 @i function loop!(slse::T, main_term, Qs, x::AbstractArray, means, alphas::AbstractArray, sum_qs, n) where T
   	@invcheckoff begin
-	  	k ← length(means)
-		d ← size(Qs[1], 1)
-		Outs ← [zeros(T, d) for i=1:k]
+	  	k ← size(means, 2)
+		d ← size(Qs, 1)
+		Outs ← zeros(T, d, k)
 		logout ← zero(T)
 		local_out ← zeros(T, k)
 		out ← zero(T)
@@ -216,12 +223,31 @@ end
 		for ix=1:n
 			@routine begin
     			@inbounds for ik=1:k
-					x[ix] .-= identity.(means[ik])
-					igemv!(Outs[ik], Qs[ik], x[ix])
-					isum(local_out[ik], (@skip! abs2), Outs[ik])
+					for i=1:d
+						x[i,ix] -= identity(means[i,ik])
+					end
+					#igemv!(view(Outs, :, ik), view(Qs,:,:,ik), view(x,:,ix))
+
+					# gemv
+					for j=1:d
+						xj ← zero(T)
+						xj += identity(x[j,ix])
+						for i=1:d
+							Outs[i, ik] += Qs[i,j,ik] * xj
+						end
+						xj -= identity(x[j,ix])
+					end
+					#isum(local_out[ik], (@skip! abs2), view(Outs,:,ik))
+					oi ← zero(T)
+					for l=1:d
+						 oi += abs2(Outs[l,ik])
+					end
+					SWAP(local_out[ik], oi)
 	      			main_term[ik] -= 0.5 * local_out[ik]
 	      			main_term[ik] += sum_qs[ik] + alphas[ik]
-					x[ix] .+= identity.(means[ik])
+					for i=1:size(x, 1)
+						x[i,ix] += identity(means[i,ik])
+					end
 				end
 				logsumexp(logout, out, xs, inds, main_term)
     		end
