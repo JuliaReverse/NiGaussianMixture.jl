@@ -92,7 +92,7 @@ end
 	mx ← zero(T)
   	ascending!(xs!, inds!, x)
 	mx += identity(xs![end])
-	@invcheckoff @inbounds for i=1:length(x)
+	@invcheckoff @inbounds for i=1:size(x)
 		x[i] -= identity(mx)
 		out! += exp(x[i])
 		x[i] += identity(mx)
@@ -158,7 +158,9 @@ end
 
 @i function unpack_col(means, mean)
 	@invcheckoff @inbounds for ik = 1:size(mean, 2)
-		means[ik] .+= identity.(mean[:,ik])
+		for i=1:size(means, 1)
+			means[i,ik] += identity(mean[i,ik])
+		end
 	end
 end
 
@@ -177,9 +179,9 @@ end
 	  	m ← size(mean,1)
 	  	k ← size(mean,2)
 		sum_qs ← zeros(T,1,size(icf, 2))
-		means ← [zeros(T,m) for i=1:k]
-		xs ← [zeros(T,m) for i=1:n]
-		Qs ← [zeros(T, d, d) for i=1:k]
+		means ← zeros(T,m,k)
+		xs ← zeros(T,m,n)
+		Qs ← zeros(T, d, d, k)
 	  	main_term ← zeros(T,1,k)
 		loss1 ← zero(loss)
 		loss2 ← zero(loss)
@@ -191,7 +193,7 @@ end
 		unpack_col(xs, x)
 		sum_row(sum_qs, icf, @keep d)
 		for ik = 1:k
-  			get_Q(Qs[ik], view(icf,:,ik))
+  			get_Q(view(Qs,:,ik), view(icf,:,ik))
 		end
 		loop!(loss1, main_term, Qs, xs, means, alphas, sum_qs, n)
 		log_wishart_prior(loss2, wishart, sum_qs, Qs, icf)
@@ -205,9 +207,9 @@ end
 
 @i function loop!(slse::T, main_term, Qs, x::AbstractArray, means, alphas::AbstractArray, sum_qs, n) where T
   	@invcheckoff begin
-	  	k ← length(means)
-		d ← size(Qs[1], 1)
-		Outs ← [zeros(T, d) for i=1:k]
+	  	k ← size(means, 2)
+		d ← size(Qs, 1)
+		Outs ← zeros(T, d, k)
 		logout ← zero(T)
 		local_out ← zeros(T, k)
 		out ← zero(T)
@@ -216,12 +218,26 @@ end
 		for ix=1:n
 			@routine begin
     			@inbounds for ik=1:k
-					x[ix] .-= identity.(means[ik])
-					igemv!(Outs[ik], Qs[ik], x[ix])
-					isum(local_out[ik], (@skip! abs2), Outs[ik])
+					for i=1:size(x, 1)
+						x[i,ix] -= identity(means[i,ik])
+					end
+					#igemv!(view(Outs, :, ik), Qs[ik], x[ix])
+
+					# gemv
+					for j=1:size(x,2)
+						for i=1:size(x,1)
+							Outs[i, ik] += Qs[i,j,ik] * x[j,ix]
+						end
+					end
+					#isum(local_out[ik], (@skip! abs2), view(Outs,:,ik))
+					for l=1:k
+						@inbounds local_out[ik] += abs2(Outs[l,ik])
+					end
 	      			main_term[ik] -= 0.5 * local_out[ik]
 	      			main_term[ik] += sum_qs[ik] + alphas[ik]
-					x[ix] .+= identity.(means[ik])
+					for i=1:size(x, 1)
+						x[i,ix] += identity(means[i,ik])
+					end
 				end
 				logsumexp(logout, out, xs, inds, main_term)
     		end
