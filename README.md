@@ -23,51 +23,51 @@ $ julia ~/.julia/dev/NiGaussianMixture/benchmarks/benchmark.jl
 You will see results like:
 ```julia repl
 Normal Objective
-BenchmarkTools.Trial:
+BenchmarkTools.Trial: 
   memory estimate:  18.69 MiB
   allocs estimate:  159061
   --------------
-  minimum time:     10.997 ms (0.00% GC)
-  median time:      11.079 ms (0.00% GC)
-  mean time:        11.502 ms (3.30% GC)
-  maximum time:     21.625 ms (27.79% GC)
+  minimum time:     11.712 ms (0.00% GC)
+  median time:      12.576 ms (0.00% GC)
+  mean time:        13.073 ms (4.32% GC)
+  maximum time:     19.791 ms (24.39% GC)
   --------------
-  samples:          435
+  samples:          383
   evals/sample:     1
 Reversible Objective
-BenchmarkTools.Trial:
-  memory estimate:  8.13 MiB
-  allocs estimate:  80211
+BenchmarkTools.Trial: 
+  memory estimate:  967.94 KiB
+  allocs estimate:  20119
   --------------
-  minimum time:     48.270 ms (0.00% GC)
-  median time:      48.512 ms (0.00% GC)
-  mean time:        49.078 ms (0.70% GC)
-  maximum time:     57.010 ms (12.90% GC)
+  minimum time:     14.487 ms (0.00% GC)
+  median time:      14.834 ms (0.00% GC)
+  mean time:        15.059 ms (0.37% GC)
+  maximum time:     23.149 ms (0.00% GC)
   --------------
-  samples:          102
+  samples:          332
   evals/sample:     1
 NiLang Gradient
-BenchmarkTools.Trial:
-  memory estimate:  21.48 MiB
-  allocs estimate:  160427
+BenchmarkTools.Trial: 
+  memory estimate:  3.74 MiB
+  allocs estimate:  40271
   --------------
-  minimum time:     111.399 ms (0.00% GC)
-  median time:      113.629 ms (0.00% GC)
-  mean time:        113.397 ms (0.86% GC)
-  maximum time:     122.746 ms (5.65% GC)
+  minimum time:     37.693 ms (0.00% GC)
+  median time:      38.862 ms (0.00% GC)
+  mean time:        40.315 ms (0.71% GC)
+  maximum time:     50.516 ms (18.68% GC)
   --------------
-  samples:          45
+  samples:          124
   evals/sample:     1
 ForwardDiff Gradient
 nparams = 330
-BenchmarkTools.Trial:
+BenchmarkTools.Trial: 
   memory estimate:  3.40 GiB
   allocs estimate:  4454076
   --------------
-  minimum time:     1.159 s (4.83% GC)
-  median time:      1.267 s (11.73% GC)
-  mean time:        1.267 s (11.57% GC)
-  maximum time:     1.375 s (16.82% GC)
+  minimum time:     1.319 s (6.45% GC)
+  median time:      1.435 s (11.68% GC)
+  mean time:        1.459 s (12.34% GC)
+  maximum time:     1.647 s (18.67% GC)
   --------------
   samples:          4
   evals/sample:     1
