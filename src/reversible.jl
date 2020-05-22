@@ -92,7 +92,7 @@ end
 	mx ← zero(T)
   	ascending!(xs!, inds!, x)
 	mx += identity(xs![end])
-	@invcheckoff @inbounds for i=1:size(x)
+	@invcheckoff @inbounds for i=1:length(x)
 		x[i] -= identity(mx)
 		out! += exp(x[i])
 		x[i] += identity(mx)
@@ -111,8 +111,8 @@ end
 
 @i function log_wishart_prior(out!, wishart::Wishart{T}, sum_qs, Qs, icf) where T
 	@routine @invcheckoff begin
-	  	p ← size(Qs[1], 1)
-	  	k ← length(Qs)
+	  	p ← size(Qs, 1)
+	  	k ← size(Qs, 3)
 	  	n ← 1
 		np ← 0
 		halfn ← 0.0
@@ -133,8 +133,10 @@ end
   		C += np * logg
 		log_gamma_distrib(-C, halfn, p)
 
-  		for iq = 1:length(Qs)
-    		isum(frobenius, (@skip! abs2), diag(Qs[iq]))
+  		for iq = 1:size(Qs,3)
+			for k=1:p
+    			@inbounds frobenius += abs2(Qs[k,k,iq])
+			end
   		end
   		isum(frobenius, (@skip! abs2),icf[p+1:end,:])
 		isum(sum_sum_qs, sum_qs)
@@ -156,14 +158,6 @@ end
 	~@routine
 end
 
-@i function unpack_col(means, mean)
-	@invcheckoff @inbounds for ik = 1:size(mean, 2)
-		for i=1:size(means, 1)
-			means[i,ik] += identity(mean[i,ik])
-		end
-	end
-end
-
 @i function sum_row(sum_qs,icf,d)
 	@invcheckoff @inbounds for ic = 1:size(icf, 2)
 		for j=1:d
@@ -172,16 +166,14 @@ end
 	end
 end
 
-@i function gmm_objective(loss, alphas, mean::AbstractMatrix{T}, icf::AbstractMatrix, x::AbstractMatrix{XT}, wishart::Wishart) where {T,XT}
+@i function gmm_objective(loss, alphas, means::AbstractMatrix{T}, icf::AbstractMatrix, xs::AbstractMatrix{XT}, wishart::Wishart) where {T,XT}
 	@routine @invcheckoff begin
-	  	d ← size(x,1)
-	  	n ← size(x,2)
-	  	m ← size(mean,1)
-	  	k ← size(mean,2)
+	  	d ← size(xs,1)
+	  	n ← size(xs,2)
+	  	m ← size(means,1)
+	  	k ← size(means,2)
 		sum_qs ← zeros(T,1,size(icf, 2))
-		means ← zeros(T,m,k)
-		xs ← zeros(T,m,n)
-		Qs ← zeros(T, d, d, k)
+		Qs ← zeros(T,d,d,k)
 	  	main_term ← zeros(T,1,k)
 		loss1 ← zero(loss)
 		loss2 ← zero(loss)
@@ -189,11 +181,9 @@ end
 		out_anc ← zero(loss)
 		xs_anc ← T[]
 		inds_anc ← Int[]
-		unpack_col(means, mean)
-		unpack_col(xs, x)
 		sum_row(sum_qs, icf, @keep d)
 		for ik = 1:k
-  			get_Q(view(Qs,:,ik), view(icf,:,ik))
+  			get_Q(view(Qs,:,:,ik), view(icf,:,ik))
 		end
 		loop!(loss1, main_term, Qs, xs, means, alphas, sum_qs, n)
 		log_wishart_prior(loss2, wishart, sum_qs, Qs, icf)
@@ -218,21 +208,21 @@ end
 		for ix=1:n
 			@routine begin
     			@inbounds for ik=1:k
-					for i=1:size(x, 1)
+					for i=1:d
 						x[i,ix] -= identity(means[i,ik])
 					end
-					#igemv!(view(Outs, :, ik), Qs[ik], x[ix])
+					igemv!(view(Outs, :, ik), view(Qs,:,:,ik), view(x,:,ix))
 
 					# gemv
-					for j=1:size(x,2)
-						for i=1:size(x,1)
-							Outs[i, ik] += Qs[i,j,ik] * x[j,ix]
-						end
-					end
-					#isum(local_out[ik], (@skip! abs2), view(Outs,:,ik))
-					for l=1:k
-						@inbounds local_out[ik] += abs2(Outs[l,ik])
-					end
+					#for j=1:d
+					#	for i=1:d
+					#		Outs[i, ik] += Qs[i,j,ik] * x[j,ix]
+					#	end
+					#end
+					isum(local_out[ik], (@skip! abs2), view(Outs,:,ik))
+					#for l=1:d
+					#	local_out[ik] += abs2(Outs[l,ik])
+					#end
 	      			main_term[ik] -= 0.5 * local_out[ik]
 	      			main_term[ik] += sum_qs[ik] + alphas[ik]
 					for i=1:size(x, 1)
