@@ -137,8 +137,8 @@ end
 		log_gamma_distrib(-C, halfn, p)
 
   		for iq = 1:size(Qs,3)
-			for k=1:p
-    			@inbounds frobenius += abs2(Qs[k,k,iq])
+			for l=1:p
+    			@inbounds frobenius += abs2(Qs[l,l,iq])
 			end
   		end
   		isum(frobenius, (@skip! abs2),icf[p+1:end,:])
@@ -177,25 +177,37 @@ end
 	  	k ← size(means,2)
 		sum_qs ← zeros(T,1,size(icf, 2))
 		Qs ← zeros(T,d,d,k)
-	  	main_term ← zeros(T,1,k)
 		loss1 ← zero(loss)
 		loss2 ← zero(loss)
 		salpha ← zero(loss)
 		out_anc ← zero(loss)
 		xs_anc ← T[]
 		inds_anc ← Int[]
+	end
+	@invcheckoff main_term ← zeros(T,1,k)
+	@invcheckoff @routine begin
 		sum_row(sum_qs, icf, @keep d)
 		for ik = 1:k
-  			get_Q(view(Qs,:,:,ik), view(icf,:,ik))
+	  		get_Q(view(Qs,:,:,ik), view(icf,:,ik))
 		end
-		loop!(loss1, main_term, Qs, xs, means, alphas, sum_qs, n)
-		log_wishart_prior(loss2, wishart, sum_qs, Qs, icf)
-		logsumexp(salpha, out_anc, xs_anc, inds_anc, alphas)
 	end
+	loop!(loss1, main_term, Qs, xs, means, alphas, sum_qs, n)
+	log_wishart_prior(loss2, wishart, sum_qs, Qs, icf)
+	(~log_wishart_prior)(loss2, wishart, sum_qs, Qs, icf)
+	logsumexp(salpha, out_anc, xs_anc, inds_anc, alphas)
+	~@routine
+
   	loss -= identity(n*d*0.5*log(2 * pi))
 	loss += loss1 + loss2
   	loss -= n * salpha
-	~@routine
+	ipush!(salpha)
+	ipush!(loss1)
+	ipush!(loss2)
+	ipush!(inds_anc)
+	ipush!(out_anc)
+	ipush!(xs_anc)
+	ipush!(main_term)
+	@invcheckoff main_term → zeros(T,0,0)
 end
 
 @i function loop!(slse::T, main_term, Qs, x::AbstractArray, means, alphas::AbstractArray, sum_qs, n) where T

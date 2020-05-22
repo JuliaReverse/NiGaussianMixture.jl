@@ -2,6 +2,7 @@ using Test
 using NiGaussianMixture: logsumexp, ltri_unpack, ascending!, log_gamma_distrib
 using NiLang
 using SpecialFunctions
+using ForwardDiff, NiLang.AD
 
 function load(d, k)
     dir_in = joinpath(dirname(dirname(@__FILE__)), "data", "gmm")
@@ -59,9 +60,19 @@ end
 end
 
 @testset "gmm objective" begin
+	empty!(NiLang.GLOBAL_STACK)
 	alphas, means, icf, x, wishart = load(10, 5)
-	@test isapprox(gmm_objective(0.0,alphas,means,icf,x,wishart)[1], -317178.3340912648; atol=0.1)
-	@test check_inv(gmm_objective, (0.0,alphas,means,icf,x,wishart))
+	@test isapprox(gmm_objective(0.0,alphas,means,icf,x,wishart)[1], -317785.8722759027; atol=0.1)
+	@test check_inv(gmm_objective, (0.0,alphas,means,icf,x,wishart); verbose=true)
+	empty!(NiLang.GLOBAL_STACK)
+end
+
+@testset "forward diff" begin
+	alphas, means, icf, x, wishart = load(10, 5)
+	jf = NiGaussianMixture.jac_forwarddiff(alphas, means, icf, x, wishart)
+	_, _, galphas,gmeans,gicf,_,_ = Grad(gmm_objective)(Val(1), 0.0, alphas,means,icf,x,wishart)
+  	gparams = NiGaussianMixture.pack(grad(galphas), grad(gmeans), grad(gicf))
+	@test isapprox(gparams, jf, rtol=1e-2)
 end
 
 @testset "gmm objective, irreversible" begin
