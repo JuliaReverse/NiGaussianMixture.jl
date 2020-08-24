@@ -1,5 +1,6 @@
 using Test
-using NiGaussianMixture: logsumexp, ltri_unpack, ascending!, log_gamma_distrib
+using NiGaussianMixture: logsumexp, ltri_unpack, log_gamma_distrib
+using NiGaussianMixture
 using NiLang
 using SpecialFunctions
 using ForwardDiff, NiLang.AD
@@ -21,7 +22,7 @@ end
 	end
 
 	x = randn(100)
-	@test ascending!(Float64[], Int[], x)[1][end] == maximum(x)
+	@test i_ascending!(Float64[], Int[], x)[1][end] == maximum(x)
 	@test logsumexp(0.0, 0.0, Float64[], Int[], x)[1] ≈ logsumexp2(x)
 	@test check_inv(logsumexp, (0.0, 0.0, Float64[], Int[], x))
 end
