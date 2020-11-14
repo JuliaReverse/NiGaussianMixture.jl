@@ -34,25 +34,25 @@ function log_wishart_prior(wishart::Wishart, sum_qs, Qs, icf, d, k)
     for Q in Qs
         frobenius += sum(abs2,diag(Q))
     end
-    frobenius += sum(abs2,icf[d+1:end,:])
+    frobenius += sum(abs2,view(icf,d+1:size(icf, 1),:))
 	0.5*wishart.gamma^2 * frobenius - wishart.m*sum(sum_qs) - k*C
 end
 
 function get_Q(d,icf)
-  	ltri_unpack(exp.(icf[1:d]),icf[d+1:end])
+  	ltri_unpack(exp.(view(icf,1:d)),view(icf,d+1:length(icf)))
 end
 
-function gmm_objective(alphas,means::AbstractArray{T},icf,x,wishart::Wishart) where T
-  	d = size(x,1)
-  	n = size(x,2)
-  	m = size(means,1)
-  	k = size(means,2)
-  	means = [(view(means,:,ik)) for ik=1:k]
-  	x = [(view(x,:,ix)) for ix=1:n]
+function gmm_objective(alphas,means_::AbstractArray{T},icf,x_,wishart::Wishart) where T
+  	d = size(x_,1)
+  	n = size(x_,2)
+  	m = size(means_,1)
+  	k = size(means_,2)
+  	means = [means_[:,ik] for ik=1:k]
+  	x = [x_[:,ix] for ix=1:n]
   	CONSTANT = -n*d*0.5*log(2 * pi)
 
-  	sum_qs = sum(icf[1:d,:],dims=1)
-  	Qs = [get_Q(d,icf[:,ik]) for ik in 1:k]
+  	sum_qs = sum(view(icf,1:d,:),dims=1)
+  	Qs = [get_Q(d,view(icf,:,ik)) for ik in 1:k]
   	slse = loop!(Qs, x, means, alphas, sum_qs, n)
   	CONSTANT + slse - n*logsumexp(alphas) + log_wishart_prior(wishart, sum_qs, Qs, icf, d, k)
 end
@@ -61,9 +61,12 @@ function loop!(Qs, x, means, alphas::AbstractArray{T}, sum_qs, n) where T
   	k = length(means)
   	main_term = zeros(T,1,k)
   	slse = 0.
+	work = zeros(T, length(x[1]))
+	workB = zeros(T, length(x[1]))
   	for ix=1:n
     	for ik=1:k
-      		@inbounds main_term[ik] = -0.5*sum(abs2, Qs[ik] * (x[ix] - means[ik]))
+			work .= x[ix] .- means[ik]
+      		@inbounds main_term[ik] = -0.5*sum(abs2, mul!(workB, Qs[ik], work))
     	end
     	slse += logsumexp(alphas + sum_qs + main_term)
   	end
