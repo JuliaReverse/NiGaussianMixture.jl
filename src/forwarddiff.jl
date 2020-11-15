@@ -8,7 +8,12 @@ end
 
 function ltri_unpack(D, LT::AbstractArray{T}) where T
     d=length(D)
-    res = zeros(T, d, d)
+	res = zeros(T, d, d)
+	ltri_unpack!(res, D, LT::AbstractArray{T}) where T
+end
+
+function ltri_unpack!(res, D, LT::AbstractArray{T}) where T
+    d=length(D)
     for r=1:d
 	    row_start = div((r-1)*(r-2),2)
 	    for i=1:r-1
@@ -22,53 +27,55 @@ end
 # input should be 1 dimensional
 function logsumexp(x)
     mx = maximum(x)
-    log.(sum(exp.(x .- mx))) .+ mx
+    log(sum(xi->exp(xi - mx), x)) + mx
 end
 
 function log_wishart_prior(wishart::Wishart, sum_qs, Qs, icf, d, k)
-    p = size(Qs[1],1)
+    p = size(Qs,1)
     n = p + wishart.m + 1
     C = n*p*(log(wishart.gamma) - 0.5*log(2)) - log_gamma_distrib(0.5*n, p)
 
     frobenius = 0.
-    for Q in Qs
-        frobenius += sum(abs2,diag(Q))
+    @inbounds for iq=1:size(Qs, 3)
+        frobenius += sum(abs2,diag(view(Qs,:,:,iq)))
     end
     frobenius += sum(abs2,view(icf,d+1:size(icf, 1),:))
 	0.5*wishart.gamma^2 * frobenius - wishart.m*sum(sum_qs) - k*C
 end
 
-function get_Q(d,icf)
-  	ltri_unpack(exp.(view(icf,1:d)),view(icf,d+1:length(icf)))
+function get_Q!(Q,d,icf)
+  	ltri_unpack!(Q,exp.(view(icf,1:d)),view(icf,d+1:length(icf)))
 end
 
-function gmm_objective(alphas,means_::AbstractArray{T},icf,x_,wishart::Wishart) where T
-  	d = size(x_,1)
-  	n = size(x_,2)
-  	m = size(means_,1)
-  	k = size(means_,2)
-  	means = [means_[:,ik] for ik=1:k]
-  	x = [x_[:,ix] for ix=1:n]
+function gmm_objective(alphas,means::AbstractArray{T},icf,x,wishart::Wishart) where T
+  	d = size(x,1)
+  	n = size(x,2)
+  	m = size(means,1)
+  	k = size(means,2)
   	CONSTANT = -n*d*0.5*log(2 * pi)
 
   	sum_qs = sum(view(icf,1:d,:),dims=1)
-  	Qs = [get_Q(d,view(icf,:,ik)) for ik in 1:k]
-  	slse = loop!(Qs, x, means, alphas, sum_qs, n)
+    Qs = zeros(T,d,d,k)
+    @inbounds for ik = 1:k
+        get_Q!(view(Qs,:,:,ik),d,view(icf,:,ik))
+    end
+	slse = loop!(Qs, x, means, alphas, sum_qs, n)
   	CONSTANT + slse - n*logsumexp(alphas) + log_wishart_prior(wishart, sum_qs, Qs, icf, d, k)
 end
 
 function loop!(Qs, x, means, alphas::AbstractArray{T}, sum_qs, n) where T
-  	k = length(means)
+  	k = size(means, 2)
+    d = size(means, 1)
   	main_term = zeros(T,1,k)
-  	slse = 0.
-	work = zeros(T, length(x[1]))
-	workB = zeros(T, length(x[1]))
-  	for ix=1:n
+  	slse = 0.0
+	work = zeros(T, d)
+	workB = zeros(T, d)
+  	@inbounds for ix=1:n
     	for ik=1:k
-			work .= x[ix] .- means[ik]
-      		@inbounds main_term[ik] = -0.5*sum(abs2, mul!(workB, Qs[ik], work))
+            work .= view(x,:,ix) .- view(means,:,ik)
+            main_term[ik] = -0.5*sum(abs2, mul!(workB, view(Qs,:,:,ik), work))
     	end
-    	slse += logsumexp(alphas + sum_qs + main_term)
+    	slse += logsumexp(alphas .+ sum_qs .+ main_term)
   	end
   	slse
 end

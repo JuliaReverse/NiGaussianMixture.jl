@@ -80,7 +80,7 @@ end
     			@inbounds frobenius += abs2(Qs[l,l,iq])
 			end
   		end
-  		i_sum(frobenius, (@skip! abs2),icf[p+1:end,:])
+        i_sum(frobenius, (@skip! abs2),view(icf, p+1:size(icf, 1),:))
 		i_sum(sum_sum_qs, sum_qs)
 	end
 
