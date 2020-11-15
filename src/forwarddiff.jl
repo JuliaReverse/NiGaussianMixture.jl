@@ -37,7 +37,7 @@ function log_wishart_prior(wishart::Wishart, sum_qs, Qs, icf, d, k)
 
     frobenius = 0.
     @inbounds for iq=1:size(Qs, 3)
-        frobenius += sum(abs2,diag(view(Qs,:,:,iq)))
+        frobenius += sum(i->abs2(Qs[i,i,iq]),1:p)
     end
     frobenius += sum(abs2,view(icf,d+1:size(icf, 1),:))
 	0.5*wishart.gamma^2 * frobenius - wishart.m*sum(sum_qs) - k*C
