@@ -45,8 +45,8 @@ end
 	end
 
 	icf = randn(100)
-	@test NiGaussianMixture.get_Q(zeros(5, 5), icf)[1] ≈ get_Q2(5, icf)
-	@test check_inv(NiGaussianMixture.get_Q, (zeros(5, 5), icf))
+	@test NiGaussianMixture.i_get_Q!(zeros(5, 5), icf)[1] ≈ get_Q2(5, icf)
+	@test check_inv(NiGaussianMixture.i_get_Q!, (zeros(5, 5), icf))
 end
 
 @testset "log gamma distri" begin

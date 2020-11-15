@@ -90,13 +90,15 @@ end
 	~@routine
 end
 
-@i function get_Q(res::AbstractMatrix, icf::AbstractArray{T}) where T
+@i function i_get_Q!(res::AbstractMatrix, icf::AbstractArray{T}) where T
 	@routine @invcheckoff begin
 		d ← size(res,1)
 	  	expd ← zeros(T, d)
-	  	expd .+= exp.(icf[1:d])
+        @inbounds for i=1:d
+            expd[i] += exp(icf[i])
+        end
 	end
-  	ltri_unpack(res, expd, icf[d+1:end])
+    ltri_unpack(res, expd, view(icf,d+1:length(icf)))
 	~@routine
 end
 
@@ -123,8 +125,8 @@ end
 	@invcheckoff main_term ← zeros(T,1,k)
 	@invcheckoff @routine begin
 		sum_row(sum_qs, icf, @keep d)
-		for ik = 1:k
-	  		get_Q(view(Qs,:,:,ik), view(icf,:,ik))
+		@inbounds for ik = 1:k
+	  		i_get_Q!(view(Qs,:,:,ik), view(icf,:,ik))
 		end
 	end
 	loop!(loss1, main_term, Qs, xs, means, alphas, sum_qs, n)
