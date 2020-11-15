@@ -74,8 +74,9 @@ function loop!(Qs, x, means, alphas::AbstractArray{T}, sum_qs, n) where T
     	for ik=1:k
             work .= view(x,:,ix) .- view(means,:,ik)
             main_term[ik] = -0.5*sum(abs2, mul!(workB, view(Qs,:,:,ik), work))
-    	end
-    	slse += logsumexp(alphas .+ sum_qs .+ main_term)
+		end
+		main_term .+= alphas .+ sum_qs
+    	slse += logsumexp(main_term)
   	end
   	slse
 end
