@@ -80,7 +80,7 @@ end
     			@inbounds frobenius += abs2(Qs[l,l,iq])
 			end
   		end
-        i_sum(frobenius, (@skip! abs2),view(icf, p+1:size(icf, 1),:))
+        i_sum(frobenius, (@skip! abs2), icf |> subarray(p+1:size(icf, 1),:))
 		i_sum(sum_sum_qs, sum_qs)
 	end
 
@@ -98,7 +98,7 @@ end
             expd[i] += exp(icf[i])
         end
 	end
-    ltri_unpack(res, expd, view(icf,d+1:length(icf)))
+    ltri_unpack(res, expd, icf |> subarray(d+1:length(icf)))
 	~@routine
 end
 
@@ -118,24 +118,21 @@ end
 	  	k ← size(means,2)
 		sum_qs ← zeros(T,1,size(icf, 2))
 		Qs ← zeros(T,d,d,k)
-        @zeros T loss1 loss2 salpha out_anc
-		xs_anc ← T[]
-		inds_anc ← Int[]
+        sum_row(sum_qs, icf, @const d)
+        @inbounds for ik = 1:k
+            i_get_Q!(Qs |> subarray(:,:,ik), icf |> subarray(:,ik))
+        end
 	end
-	@invcheckoff main_term ← zeros(T,1,k)
-	@invcheckoff @routine begin
-		sum_row(sum_qs, icf, @keep d)
-		@inbounds for ik = 1:k
-	  		i_get_Q!(view(Qs,:,:,ik), view(icf,:,ik))
-		end
-	end
+	inds_anc ← Int[]
+    @zeros T loss1 loss2 salpha out_anc
+	xs_anc ← T[]
+	main_term ← zeros(T,1,k)
 	loop!(loss1, main_term, Qs, xs, means, alphas, sum_qs, n)
 	log_wishart_prior(loss2, wishart, sum_qs, Qs, icf)
 	(~log_wishart_prior)(loss2, wishart, sum_qs, Qs, icf)
 	logsumexp(salpha, out_anc, xs_anc, inds_anc, alphas)
-	~@routine
 
-    loss -= identity(n*d*0.5*log(2 * pi))
+    loss -= @const n*d*0.5*log(2 * pi)
 	loss += loss1 + loss2
   	loss -= n * salpha
 	PUSH!(salpha)
@@ -145,7 +142,12 @@ end
 	PUSH!(out_anc)
 	PUSH!(xs_anc)
 	PUSH!(main_term)
-	@invcheckoff main_term → zeros(T,0,0)
+    @invcheckoff begin
+        main_term → zeros(T,0,0)
+        xs_anc → T[]
+        inds_anc → Int[]
+    end
+	~@routine
 end
 
 @i function loop!(slse::T, main_term, Qs, x::AbstractArray, means, alphas::AbstractArray, sum_qs, n) where T
