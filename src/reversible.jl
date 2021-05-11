@@ -26,12 +26,14 @@ end
 @i function ltri_unpack(res, D, LT::AbstractArray{T}) where T
   	d ← length(D)
   	@invcheckoff for r = 1:d
-		row_start ← (r-1) * (r-2) ÷ 2
+		@routine row_start ← (r-1) * (r-2) ÷ 2
 		@inbounds for i=1:r-1
     		res[r,i] += LT[row_start + i]
 		end
 		@inbounds res[r, r] += D[r]
+        ~@routine
   	end
+  	d → length(D)
 end
 
 # input should be 1 dimensional
@@ -47,6 +49,7 @@ end
   	logout! += log(out!)
 	logout! += mx
 	mx -= xs![end]
+    mx → zero(T)
 end
 
 function NiLang.chfield(a::AbstractArray{T}, ::typeof(diag), val::AbstractVector{T}) where T
@@ -135,31 +138,33 @@ end
     loss -= @const n*d*0.5*log(2 * pi)
 	loss += loss1 + loss2
   	loss -= n * salpha
-	PUSH!(salpha)
-	PUSH!(loss1)
-	PUSH!(loss2)
-	PUSH!(inds_anc)
-	PUSH!(out_anc)
-	PUSH!(xs_anc)
-	PUSH!(main_term)
-    @invcheckoff begin
-        main_term → zeros(T,0,0)
-        xs_anc → T[]
-        inds_anc → Int[]
-    end
+	FLOAT64_STACK[end+1] ↔ salpha::T
+	FLOAT64_STACK[end+1] ↔ loss1::T
+	FLOAT64_STACK[end+1] ↔ loss2::T
+	FLOAT64_STACK[end+1] ↔ out_anc::T
+	GLOBAL_STACK[end+1] ↔ inds_anc
+	GLOBAL_STACK[end+1] ↔ xs_anc::Vector{T}
+	GLOBAL_STACK[end+1] ↔ main_term::Matrix{T}
+    #@invcheckoff begin
+    #    main_term → zeros(T,0,0)
+    #    xs_anc → T[]
+    #    inds_anc → Int[]
+    #end
 	~@routine
 end
 
 @i function loop!(slse::T, main_term, Qs, x::AbstractArray, means, alphas::AbstractArray, sum_qs, n) where T
   	@invcheckoff begin
-	  	k ← size(means, 2)
-		d ← size(Qs, 1)
-		Outs ← zeros(T, d, k)
-		logout ← zero(T)
-		local_out ← zeros(T, k)
-		out ← zero(T)
-		xs ← T[]
-		inds ← Int[]
+        @routine begin
+            k ← size(means, 2)
+            d ← size(Qs, 1)
+            Outs ← zeros(T, d, k)
+            logout ← zero(T)
+            local_out ← zeros(T, k)
+            out ← zero(T)
+            xs ← T[]
+            inds ← Int[]
+        end
 		for ix=1:n
 			@routine begin
     			@inbounds for ik=1:k
@@ -175,12 +180,14 @@ end
 							Outs[i, ik] += Qs[i,j,ik] * xj
 						end
 						xj -= x[j,ix]
+						xj → zero(T)
 					end
 					oi ← zero(T)
 					for l=1:d
 						 oi += abs2(Outs[l,ik])
 					end
 					SWAP(local_out[ik], oi)
+					oi → zero(T)
 	      			main_term[ik] -= 0.5 * local_out[ik]
 	      			main_term[ik] += sum_qs[ik] + alphas[ik]
 					for i=1:size(x, 1)
@@ -193,4 +200,5 @@ end
 			~@routine
   		end
 	end
+    ~@routine
 end
